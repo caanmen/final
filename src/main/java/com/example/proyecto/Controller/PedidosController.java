@@ -4,6 +4,7 @@ import com.example.proyecto.Service.ClienteService;
 import com.example.proyecto.Service.EmailService;
 import com.example.proyecto.Service.PedidoServices;
 import com.example.proyecto.pfinal.Model.OrdenDTO;
+import com.example.proyecto.pfinal.Model.Ordenes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,12 @@ public class PedidosController {
         // Implementar la lógica
         return new ResponseEntity<>("Confirmación de orden enviada", HttpStatus.OK);
     }
+    @PostMapping("/orden")
+    public ResponseEntity<?> crearOrden(@RequestBody OrdenRequest ordenRequest) {
+        Ordenes ordenes = PedidoServices.crearOrden(ordenRequest);
+        return ResponseEntity.ok(ordenes);
+    }
+
 
     @GetMapping("/descuento/{clienteId}")
     public ResponseEntity<?> aplicarDescuento(@PathVariable Long clienteId) {
