@@ -3,83 +3,101 @@ package com.example.proyecto.Service;
 import com.example.proyecto.Repository.*;
 import com.example.proyecto.pfinal.Model.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
-public class PedidoServices {
+public class PedidoService {
+
     @Autowired
-    private OrdenesRepository ordenRepository;
+    private PedidoRepository pedidoRepository;
 
+    @Autowired
+    private ClientesRepository clienteRepository;
 
-    public Ordenes crearOrden(OrdenDTO ordenDTO) {
-        // Implementar la lógica para crear una orden
-        return new Ordenes(); // Cambiar según la implementación
-    }
+    @Autowired
+    private ProductosRepository productoRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    // Otros repositorios si son necesarios
+
     public Ordenes crearOrden(OrdenesRequest ordenRequest) {
-        if (controlOrdenesActivasRepository.existeOrdenActiva(ordenRequest.getClienteId())) {
-            throw new OrdenActivaException("El cliente ya tiene una orden activa.");
+        // Verificar si el cliente tiene una orden activa
+        if (existeOrdenActiva(ordenRequest.getClienteId())) {
+            throw new RuntimeException("El cliente ya tiene una orden activa.");
         }
 
-    public Ordenes obtenerOrden(Long ordenId) {
-        // Implementar la lógica para obtener una orden
-        return new Ordenes(); // Cambiar según la implementación
-    }
-
-    public boolean esClienteFiel(Clientes clientes) {
-        // Implementar la lógica para verificar si un cliente es fiel
-        return true; // Cambiar según la implementación
-    }
-
-    public Ordenes aplicarDescuentoSiEsNecesario(Ordenes ordenes) {
-        long count = HistorialPedidosRepository.countPedidosRecientes(ordenes.getCliente().getId());
-        if (count > 5) {
-            // Aplicar descuento
-        }
-        return ordenes;
-    }
-
-    public boolean existeOrdenActiva(Long clienteId) {
-        // Implementar la lógica para verificar órdenes activas
-        return false; // Cambiar según la implementación
-    }
-    public Ordenes crearOrden(OrdenesRequest ordenRequest) {
-        Clientes clientes = ClientesRepository.findById(ordenRequest.getClientesId())
+        // Obtener cliente
+        Clientes cliente = clienteRepository.findById(ordenRequest.getClienteId())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
+        // Crear la orden
         Ordenes nuevaOrden = new Ordenes();
-        nuevaOrden.setCliente(clientes);
+        nuevaOrden.setCliente(cliente);
         nuevaOrden.setFechaOrden(LocalDateTime.now());
         nuevaOrden.setEstado("Pendiente");
-        // Otros atributos de la orden...
+        // ...
 
-        Ordenes ordenGuardada = OrdenesRepository.save(nuevaOrden);
+        // Guardar la orden
+        Ordenes ordenGuardada = pedidoRepository.save(nuevaOrden);
 
-        List<DetallesOrden> detallesOrden = ordenRequest.getDetalles().stream().map(detalle -> {
-            Productos productos = ProductosRepository.findById(detalle.getProductoId())
+        // Crear y guardar detalles de la orden
+        BigDecimal totalOrden = BigDecimal.ZERO;
+        for (DetalleOrdenRequest detalleRequest : ordenRequest.getDetalles()) {
+            Producto producto = productoRepository.findById(detalleRequest.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-            DetallesOrden detalleOrden = new DetallesOrden();
+            DetalleOrden detalleOrden = new DetalleOrden();
             detalleOrden.setOrden(ordenGuardada);
-            detalleOrden.setProducto(productos);
-            detalleOrden.setCantidad(detalle.getCantidad());
-            detalleOrden.setSubtotal(productos.getPrecio().multiply(new BigDecimal(detalle.getCantidad())));
-            // Otros atributos del detalle...
+            detalleOrden.setProducto(producto);
+            detalleOrden.setCantidad(detalleRequest.getCantidad());
+            BigDecimal subtotal = producto.getPrecio().multiply(new BigDecimal(detalleRequest.getCantidad()));
+            detalleOrden.setSubtotal(subtotal);
+            totalOrden = totalOrden.add(subtotal);
 
-            return detalleOrden;
-        }).collect(Collectors.toList());
+            // Guardar detalle de la orden
+            // detalleOrdenRepository.save(detalleOrden);
+        }
 
-        DetallesOrdenRepository.saveAll(detallesOrden);
+        // Actualizar el total de la orden
+        ordenGuardada.setTotal(totalOrden);
+
+        // Aplicar descuento si es necesario
+        aplicarDescuentoSiEsNecesario(ordenGuardada);
 
         return ordenGuardada;
     }
 
+    public void confirmarOrden(Long ordenId) {
+        Ordenes orden = pedidoRepository.findById(ordenId)
+                .orElseThrow(() -> new RuntimeException("Orden no encontrada"));
+
+        // Confirmar la orden y enviar correo
+        emailService.enviarEmailConfirmacion(orden);
+        orden.setEstado("Confirmada");
+        pedidoRepository.save(orden);
+    }
+
+    private boolean existeOrdenActiva(Long clienteId) {
+        // Implementar lógica para verificar si existe una orden activa
+        List<Ordenes> ordenesActivas = pedidoRepository.findOrdenesActivasByClienteId(clienteId);
+        return !ordenesActivas.isEmpty();
+    }
+
+    private void aplicarDescuentoSiEsNecesario(Ordenes orden) {
+        // Implementar lógica para aplicar descuentos
+        int cantidadPedidos = pedidoRepository.contarPedidosUltimosDosMeses(orden.getCliente().getId());
+        if (cantidadPedidos > 5) {
+            BigDecimal descuento = orden.getTotal().multiply(new BigDecimal("0.10"));
+            orden.setTotal(orden.getTotal().subtract(descuento));
+            pedidoRepository.save(orden);
+        }
+    }
+
+    // Otros métodos necesarios para el servicio
 }

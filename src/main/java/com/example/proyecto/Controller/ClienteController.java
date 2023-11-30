@@ -17,12 +17,23 @@ public class ClienteController {
 
     @PutMapping("/actualizar")
     public ResponseEntity<?> actualizarDatosCliente(@RequestBody ClienteDTO clienteDTO) {
-        clienteService.actualizarDatosCliente(clienteDTO);
-        return new ResponseEntity<>("Datos del cliente actualizados", HttpStatus.OK);
+        try {
+            clienteService.actualizarDatosCliente(clienteDTO);
+            return new ResponseEntity<>("Datos del cliente actualizados", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
+
     @PutMapping("/cliente/{id}")
     public ResponseEntity<?> actualizarCliente(@PathVariable Long id, @RequestBody Clientes clienteActualizado) {
-        Clientes clientes = ClienteService.actualizarCliente(id, clienteActualizado);
-        return ResponseEntity.ok(clientes);
+        try {
+            Clientes cliente = clienteService.actualizarCliente(id, clienteActualizado);
+            return ResponseEntity.ok(cliente);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
+
+    // Aquí puedes agregar otros métodos relacionados con las operaciones de clientes
 }
