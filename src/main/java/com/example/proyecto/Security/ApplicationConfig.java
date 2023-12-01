@@ -1,7 +1,5 @@
 package com.example.proyecto.Security;
 
-import com.example.proyecto.Repository.UsuariosRepository;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
