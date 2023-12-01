@@ -1,0 +1,17 @@
+proyecto\Service\OrdenService.class
+ProjectApplication.class
+proyecto\Controller\ClienteController.class
+proyecto\Repository\ProductoRepository.class
+proyecto\Controller\ProductoController.class
+proyecto\Service\EmailService.class
+proyecto\Controller\OrdenController.class
+proyecto\Service\DetalleOrdenService.class
+proyecto\Service\ClienteService.class
+proyecto\Modelo\Producto.class
+proyecto\Repository\OrdenRepository.class
+proyecto\Modelo\Orden.class
+proyecto\Repository\DetalleOrdenRepository.class
+proyecto\Modelo\DetalleOrden.class
+proyecto\Repository\ClienteRepository.class
+proyecto\Service\ProductoService.class
+proyecto\Modelo\Cliente.class
